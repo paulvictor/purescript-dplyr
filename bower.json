@@ -1,0 +1,24 @@
+{
+  "name": "purescript-dplyr",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "output"
+  ],
+  "dependencies": {
+    "purescript-prelude": "^4.0.1",
+    "purescript-console": "^4.1.0",
+    "purescript-effect": "^2.0.0",
+    "purescript-transformers": "^4.1.0",
+    "purescript-newtype": "^3.0.0",
+    "purescript-lists": "^5.0.0",
+    "purescript-generics-rep": "^6.0.0",
+    "purescript-filterable": "^3.0.1",
+    "purescript-record": "^1.0.0",
+    "purescript-record-extra": "^1.0.0"
+  },
+  "devDependencies": {
+    "purescript-psci-support": "^4.0.0"
+  }
+}
