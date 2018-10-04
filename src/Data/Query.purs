@@ -2,18 +2,20 @@ module Data.Query where
 
 import Prelude
 
-import Control.Monad.Reader.Class (ask)
+import Control.Monad.Reader.Class (asks)
 import Control.Monad.Reader.Trans (ReaderT)
 import Data.DataFrame (DataFrame(..))
 import Data.Filterable (filter) as Filterable
+import Data.Foldable (foldr)
 import Data.Function (on)
-import Data.List (sortBy)
-import Data.List.Lazy (List, uncons, (:))
-import Data.List.Lazy (filter) as L
-import Data.Maybe (maybe)
+import Data.List (List, sortBy, (:))
+import Data.Map (alter, empty, toUnfoldable) as Map
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (over)
 import Data.Ordering (invert)
 import Data.Symbol (class IsSymbol, SProxy(..))
+import Data.Tuple (snd)
+import Data.Tuple.Nested (type (/\))
 import Prim.Row (class Cons, class Lacks)
 import Prim.RowList (class RowToList, Cons, Nil, kind RowList)
 import Record (get, insert)
@@ -23,7 +25,7 @@ import Type.Row (class ListToRow, RLProxy(..), RProxy)
 type Query m a b = ReaderT (DataFrame a) m (DataFrame b)
 
 filter :: ∀ m a. Monad m => (a -> Boolean) -> Query m a a
-filter f = (Filterable.filter f) <$> ask
+filter f = asks (Filterable.filter f)
 
 arrange
   :: ∀ m sym a rec without
@@ -35,7 +37,7 @@ arrange
   => SProxy sym
   -> Boolean
   -> Query m ({|rec}) ({|rec})
-arrange proxy asc = (over DataFrame $ sortBy (comp `on` (get proxy))) <$> ask
+arrange proxy asc = asks (over DataFrame $ sortBy (comp `on` (get proxy)))
   where
     comp :: a -> a -> Ordering
     comp a = if asc then compare a else invert <<< compare a
@@ -49,7 +51,7 @@ pull
   => Cons sym a without rec
   => SProxy sym
   -> Query m {|rec} a
-pull proxy = (over DataFrame $ map (( get proxy))) <$> ask
+pull proxy = asks (over DataFrame $ map ( get proxy))
 
 class RowSubset (row :: # Type) (xs :: RowList) (subrow :: # Type) | row xs -> subrow where
   subsetImpl :: RLProxy xs -> {|row} -> {|subrow}
@@ -84,7 +86,7 @@ select
   => ListToRow rl subR
   => RProxy subR
   -> Query m {|rec} {|subR}
-select proxy = (map (flip subsetRow proxy)) <$> ask
+select proxy = asks (map (flip subsetRow proxy))
 
 rename
   :: ∀ m inter input output sym sym' a
@@ -98,7 +100,7 @@ rename
   => SProxy sym
   -> SProxy sym'
   -> Query m {|input} {|output}
-rename proxy proxy' = (map (R.rename proxy proxy')) <$> ask
+rename proxy proxy' = asks (map (R.rename proxy proxy'))
 
 mutate
   :: ∀ m input output sym a
@@ -109,7 +111,7 @@ mutate
   => SProxy sym
   -> ({|input} -> a)
   -> Query m {|input} {|output}
-mutate proxy f = (map (\r -> R.insert proxy (f r) r)) <$> ask
+mutate proxy f = asks (map (\r -> R.insert proxy (f r) r))
 
 transmute
   :: ∀ m input sym a out
@@ -120,7 +122,32 @@ transmute
   => SProxy sym
   -> ({|input} -> a)
   -> Query m {|input} {|out}
-transmute proxy f = (map \r -> R.insert proxy (f r) {}) <$> ask
+transmute proxy f = asks (map \r -> R.insert proxy (f r) {})
 
-sort :: ∀ a. Ord a => List a -> List a
-sort xs = maybe mempty (\{ head, tail } -> (sort $ L.filter (_ <= head) tail) <> (head : (sort $ L.filter (_ > head) tail))) $ uncons xs
+groupBy
+  :: ∀ m a b
+  . Monad m
+  => Ord b
+  => (a -> b)
+  -> Query m a (b /\ (List a))
+groupBy f = asks go
+  where
+  go =
+    over DataFrame $
+      foldr
+        (\a -> Map.alter (Just <<< maybe (pure a) (a : _)) (f a))
+        Map.empty
+      >>> Map.toUnfoldable
+
+summarise
+  :: ∀ m a b c
+  . Monad m
+  => (List a -> c)
+  -> Query m (b /\ (List a)) (b /\ c)
+summarise f = asks (over DataFrame (map (map f)))
+
+ungroup
+  :: ∀ m a b
+  . Monad m
+  => Query m (b /\ (List a)) a
+ungroup = asks (over DataFrame (map snd >>> join))

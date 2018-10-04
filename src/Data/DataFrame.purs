@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Compactable (class Compactable, separate)
 import Data.Filterable (class Filterable, partitionMap)
+import Data.Function (on)
 import Data.Generic.Rep (class Generic)
 import Data.List (catMaybes, mapMaybe, partition)
 import Data.List (filter) as List
@@ -19,7 +20,7 @@ derive instance genericDF :: Generic (DataFrame a) _
 derive instance functorDF :: Functor DataFrame
 
 instance semigroupDF :: Semigroup (DataFrame a) where
-  append (DataFrame l1) (DataFrame l2) = wrap $ append l1 l2
+  append df1 = wrap <<< on append unwrap df1
 
 instance monoidDF :: Monoid (DataFrame a) where
   mempty = wrap mempty
