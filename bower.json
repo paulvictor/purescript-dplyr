@@ -16,7 +16,9 @@
     "purescript-generics-rep": "^6.0.0",
     "purescript-filterable": "^3.0.1",
     "purescript-record": "^1.0.0",
-    "purescript-record-extra": "^1.0.0"
+    "purescript-record-extra": "^1.0.0",
+    "purescript-argonaut-core": "^4.0.1",
+    "purescript-strings": "^4.0.0"
   },
   "devDependencies": {
     "purescript-psci-support": "^4.0.0"
