@@ -4,7 +4,7 @@ import Prelude
 
 import Data.Compactable (class Compactable, separate)
 import Data.Filterable (class Filterable, partitionMap)
-import Data.Foldable (maximum)
+import Data.Foldable (intercalate, maximum, surround)
 import Data.Function (on)
 import Data.Generic.Rep (class Generic)
 import Data.List (catMaybes, head, mapMaybe, partition, sortBy, take, transpose)
@@ -15,13 +15,10 @@ import Data.Map (toUnfoldable) as Map
 import Data.Maybe (fromMaybe, maybe)
 import Data.Monoid (power)
 import Data.Newtype (class Newtype, over, unwrap, wrap)
-import Data.NonEmpty (NonEmpty(..))
 import Data.String (length)
 import Data.String.NonEmpty (NonEmptyString)
-import Data.String.NonEmpty (length) as NES
 import Data.Tuple (fst, snd)
-import Data.Tuple.Nested ((/\), type (/\))
-import Types (Row, Column)
+import Data.Tuple.Nested (type (/\))
 
 newtype DataFrame a = DataFrame (List a)
 
@@ -54,7 +51,8 @@ instance showUntypedDataFrame :: Show a => Show (DataFrame (Map NonEmptyString a
     map (Map.toUnfoldable >>> sortBy (compare `on` fst)) >>>
     transpose >>>
     map drawColumn >>>
-    placeSideToSide
+    transpose >>>
+    map (surround " | ") >>> ((flip intercalate) <*> (head >>> maybe 0 length >>> power "-" >>> (_ <> "\n")))
     where
     drawColumn :: List (NonEmptyString /\ a) -> List String
     drawColumn xs =
@@ -67,5 +65,3 @@ instance showUntypedDataFrame :: Show a => Show (DataFrame (Map NonEmptyString a
     padTo i a =
       let pad = power " " $ (i - length (show a)) / 2
       in pad <> show a <> pad
-    placeSideToSide :: List (List String) -> String
-    placeSideToSide _ = "foo"
