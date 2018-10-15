@@ -2,6 +2,7 @@ module Data.Query.Untyped where
 
 import Prelude
 
+import Control.Apply (lift2)
 import Control.Monad.Reader.Trans (asks)
 import Data.Bifunctor (lmap)
 import Data.DataFrame (DataFrame(..))
@@ -9,14 +10,13 @@ import Data.Foldable (elem)
 import Data.Function (on)
 import Data.List (sortBy)
 import Data.List.NonEmpty (NonEmptyList)
-import Data.Map (Map)
 import Data.Map (filterKeys, insert, lookup, pop) as Map
 import Data.Maybe (Maybe, fromMaybe, maybe)
 import Data.Newtype (over)
 import Data.Ordering (invert)
 import Data.Query (Query)
 import Data.String (Pattern(..))
-import Data.String.NonEmpty (NonEmptyString, stripPrefix)
+import Data.String.NonEmpty (stripPrefix)
 import Data.Tuple (uncurry)
 import Types (Column, Row)
 
@@ -61,7 +61,7 @@ mutate
   => Column
   -> (Row a -> a)
   -> Query m (Row a) (Row a)
-mutate column f = asks (map (\r -> Map.insert column (f r) r))
+mutate column f = asks (map (lift2 (Map.insert column) f identity))
 
 transmute
   :: ∀ m a

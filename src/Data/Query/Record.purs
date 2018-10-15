@@ -2,6 +2,7 @@ module Data.Query.Record where
 
 import Prelude
 
+import Control.Apply (lift2)
 import Control.Monad.Reader.Class (asks)
 import Data.DataFrame (DataFrame(..))
 import Data.Function (on)
@@ -101,7 +102,7 @@ mutate
   => SProxy sym
   -> ({|input} -> a)
   -> Query m {|input} {|output}
-mutate proxy f = asks (map (\r -> R.insert proxy (f r) r))
+mutate proxy f = asks (map (lift2 (R.insert proxy) f identity))
 
 transmute
   :: ∀ m input sym a out
@@ -112,4 +113,4 @@ transmute
   => SProxy sym
   -> ({|input} -> a)
   -> Query m {|input} {|out}
-transmute proxy f = asks (map \r -> R.insert proxy (f r) {})
+transmute proxy f = asks (map (f >>> flip (R.insert proxy) {}))
