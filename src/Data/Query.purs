@@ -25,9 +25,7 @@ composeQuery
  => Query m a b
  -> Query m b c
  -> Query m a c
-composeQuery q1 q2 = do
-  df <- ask
-  lift $ runReaderT q1 df >>= runReaderT q2
+composeQuery q1 q2 = ask >>= ((runReaderT q1 >=> runReaderT q2) >>> lift)
 
 filter :: ∀ m a. Monad m => (a -> Boolean) -> Query m a a
 filter f = asks (Filterable.filter f)
